@@ -15,28 +15,40 @@ mode = sys.argv[1]
 thing = sys.argv[2]
 previous = None
 current = None
+first_check = True
 
 while True:
-    #do the diff
-    if mode == "http-modified":
-        response = requests.head(thing)
-        current = response.headers['Last-Modified']
-    else:
-        sys.exit("I don't know how to watch that")
-
-    print("Was", previous, "Now", current)
-    if current != previous:
-        #do stuff
-        hook_content = '*Updates to ' + thing + '* (checking in mode ' + mode + ')\n*Was:* ' + str(previous) + '\n*Now:* ' + str(current)
-
-        hook_body = {"username":"diffbot3000 on " + socket.gethostname(), "content": hook_content}
-        hook_result = requests.post(hook_url, json=hook_body)
-        try:
-            hook_result.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            print(err)
+    try:
+        #do the diff
+        if mode == "http-modified":
+            response = requests.head(thing)
+            current = response.headers['Last-Modified']
         else:
-            print(f"Payload delivered successfully, code {hook_result.status_code}.")
+            sys.exit("I don't know how to watch that")
+    except Exception as e:
+        print("Failure while checking")
+        logging.error(traceback.format_exc())
+    
+    print("Was", previous, "Now", current)
+    
+    try:
+        if current != previous and first_check == False:
+            #do stuff
+            hook_content = '*Updates to ' + thing + '* (checking in mode ' + mode + ')\n*Was:* ' + str(previous) + '\n*Now:* ' + str(current)
+    
+            hook_body = {"username":"diffbot3000 on " + socket.gethostname(), "content": hook_content}
+            hook_result = requests.post(hook_url, json=hook_body)
+            try:
+                hook_result.raise_for_status()
+            except requests.exceptions.HTTPError as err:
+                print(err)
+            else:
+                print(f"Payload delivered successfully, code {hook_result.status_code}.")
+            
+            first_check = False
+    except Exception as e:
+        print("Error while notifying")
+        logging.error(traceback.format_exc())
 
     previous = current
     time.sleep(random.randint(300, 600))
