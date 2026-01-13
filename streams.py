@@ -6,14 +6,14 @@ from bs4 import BeautifulSoup
 transport = AIOHTTPTransport(url="https://gql.api.alison.legislature.state.al.us/graphql", headers={'Content-type':'application/json'})
 client = Client(transport=transport)
 
-query = gql('query streamLocations {  locations: legislativeStreams(location: "") { Location EmbedCode } }')
+query = gql('query streamLocations {  locations: legislativeStreams(location: "") { location embedCode } }')
 result = client.execute(query)
 rooms = result["locations"]
 
 embed_urls = {}
 for room in rooms:
-    embedcode = room['EmbedCode'] #wut
+    embedcode = room['embedCode'] #wut
     html = BeautifulSoup(embedcode, 'html.parser')
-    embed_urls[room["Location"]] = html.select_one('iframe')['src']
+    embed_urls[room["location"]] = html.select_one('iframe')['src']
 
 print(json.dumps(embed_urls))
